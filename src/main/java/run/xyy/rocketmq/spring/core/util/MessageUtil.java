@@ -8,7 +8,7 @@ import org.apache.rocketmq.client.java.message.MessageBuilderImpl;
  * @since 1.0
  */
 public class MessageUtil {
-    public static MessageBuilder newMessage() {
+    public MessageBuilder newMessageBuilder() {
         return new MessageBuilderImpl();
     }
 }
