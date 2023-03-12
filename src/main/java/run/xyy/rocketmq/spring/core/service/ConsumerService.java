@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.apis.*;
 import org.apache.rocketmq.client.apis.consumer.*;
 import org.apache.rocketmq.client.apis.message.MessageView;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -19,7 +20,7 @@ import java.util.*;
  * @since 1.0
  */
 @Slf4j
-public class ConsumerService implements InitializingBean {
+public class ConsumerService implements InitializingBean, DisposableBean {
     @Autowired
     private RocketMQProperties rocketMQProperties;
     @Autowired
@@ -97,6 +98,21 @@ public class ConsumerService implements InitializingBean {
         byte[] bytes = new byte[body.remaining()];
         body.get(bytes);
         MessageContext messageContext = MessageContext.builder().body(bytes).messageView(messageView).build();
-        return consumer.consume(messageContext);
+        try {
+            return consumer.consume(messageContext);
+        } catch (Exception e) {
+            log.error("消费异常，消息id:{}", messageContext.getMessageView().getMessageId(), e);
+        }
+        return ConsumeResult.FAILURE;
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        log.info("开始清理消费者");
+        for (PushConsumer consumer : rocketMQConsumerMap.values()) {
+            consumer.close();
+        }
+        rocketMQConsumerMap.clear();
+        log.info("清理消费者结束");
     }
 }
